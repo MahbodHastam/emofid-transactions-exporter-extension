@@ -1,0 +1,38 @@
+{
+  "data": {
+    "items": [
+      {
+        "voucherDate": "2026-11-12T00:00:00",
+        "description": "واریز نمونه",
+        "voucherDetailDescription": "شرح نمونه ۱",
+        "amount": 2500000,
+        "voucherType": "SampleDeposit",
+        "remain": 9000000
+      },
+      {
+        "voucherDate": "2026-11-11T00:00:00",
+        "description": "خرید نمونه",
+        "voucherDetailDescription": "=HYPERLINK(\"http://example.invalid\")",
+        "amount": 3350771,
+        "voucherType": "SampleBuy",
+        "remain": 6500000
+      },
+      {
+        "voucherDate": "2026-11-10T00:00:00",
+        "description": "واریز, با \"نقل قول\"\nو خط جدید",
+        "voucherDetailDescription": null,
+        "amount": 500000,
+        "voucherType": "SampleDeposit",
+        "remain": 9850771
+      },
+      {
+        "voucherDate": "2026-10-20T00:00:00",
+        "description": "واریز نمونه",
+        "voucherDetailDescription": "شرح نمونه ۴",
+        "amount": 1000000,
+        "voucherType": "SampleDeposit",
+        "remain": 9350771
+      }
+    ]
+  }
+}

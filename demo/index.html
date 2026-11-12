@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Demo</title>
+    <style>
+      @font-face {
+        font-family: EmxVazirmatn;
+        font-weight: 100 900;
+        src: url(/fonts/vazirmatn-arabic.woff2) format('woff2');
+        unicode-range: U+0600-06FF, U+0750-077F, U+200C-200E, U+FB50-FDFF, U+FE70-FEFC;
+      }
+      @font-face {
+        font-family: EmxVazirmatn;
+        font-weight: 100 900;
+        src: url(/fonts/vazirmatn-latin.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+2000-206F, U+2212;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #eef1f5;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
