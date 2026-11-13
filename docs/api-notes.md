@@ -1,9 +1,9 @@
-# Emofid transactions API — Phase 0 notes
+# Emofid transactions API notes
 
-Source: static reading of the site's public JS bundles (2026-11-12). Items marked
-*unverified* were not confirmed against a live response.
+Source: static reading of the site's public JS bundles (2026-11-12), plus what real
+exports showed. Items marked *unverified* were not confirmed against a live response.
 
-## Decision: Option A (site JSON API)
+The extension reads the site's own JSON API instead of scraping the page.
 
 ## Endpoint (Transactions tab, «تراکنش‌ها»)
 
@@ -27,8 +27,8 @@ allowlist of one exact method + URL, not "GET only".
 | `voucherDate` | `dayjs(v).calendar('jalali').format('dddd، D MMMM YYYY')` | Format *unverified* (ISO string or epoch). Extension accepts ISO with/without offset, epoch s/ms, or a Jalali `YYYY/MM/DD` |
 | `description` | row title | |
 | `voucherDetailDescription` | expanded detail text (already in list payload, no extra request) | |
-| `amount` | formatted as-is (formatter keeps `-`) | On-screen amounts have no sign → presumably always positive. *unverified* |
-| `voucherType` | icon: `…/transactions/${voucherType}.svg` | Only place direction is expressed in the UI (green/red arrow). Value set *unverified* |
+| `amount` | formatted as-is (formatter keeps `-`) | Always positive in practice; direction is not in the sign |
+| `voucherType` | icon: `…/transactions/${voucherType}.svg` | Only place direction is expressed in the UI (green/red arrow). Seen so far: `Deposit`, `Withdrawal`, `Transfer` |
 | `remain` | «مانده حساب» balance after the row | |
 
 There is **no id field**. The SPA keys rows by `pageIndex-rowIndex`.
@@ -39,7 +39,23 @@ No explicit field in the code. Extension derives it, in order:
 1. negative `amount` → out;
 2. `remain[i] − remain[older neighbour] == ±amount` → in / out (self-validating);
 3. unanimous direction already learned for the same `voucherType`;
-4. otherwise `unknown` (shown under *all* only, with a warning).
+4. trade side parsed from the description (buy → out, sell → in);
+5. otherwise `unknown` (shown under *all* only, with a warning).
+
+### Trades
+
+Buys and sells are ordinary rows (`Withdrawal` / `Deposit`). The details live only in the
+text of `voucherDetailDescription`, in this shape:
+
+```
+خرید تعداد <quantity> سهم <company>(<symbol>1) به نرخ <price> به شماره اعلامیه <id>
+فروش تعداد <quantity> سهم <company>(<symbol>1) به نرخ <price> به شماره اعلامیه <id>
+```
+
+`description` (the row title) is `خرید سهم <symbol>` or `فروش سهم <symbol>`. The text mixes
+Arabic and Persian letter forms (`خريد` / `خرید`), so it is normalized before matching.
+`amount` is the cash actually moved, so `amount − quantity × price` is commission (plus tax
+on sells).
 
 ## Auth
 
@@ -66,6 +82,7 @@ Not referenced by the transactions page chunk. Extension ignores query params.
 ## Still to verify on a real response
 
 - `voucherDate` format and whether it carries a time of day.
-- `amount` sign; `voucherType` values.
+- The full set of `voucherType` values.
+- Description formats for fund units, rights and bonds.
 - Whether `pageSize` above 20 is accepted (extension uses 20, like the SPA).
 - Rate-limit headers.

@@ -1,7 +1,7 @@
 {
   "name": "emofid-transactions-exporter",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -16,7 +16,6 @@
     "@lucide/vue": "^1.72.0",
     "jalaali-js": "^2.0.1",
     "vue": "^3.5.45",
-    "write-excel-file": "^4.1.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -24,7 +23,6 @@
     "@vitejs/plugin-vue": "^6.0.10",
     "@wxt-dev/auto-icons": "^1.1.2",
     "@wxt-dev/module-vue": "^1.0.3",
-    "fflate": "^0.8.3",
     "typescript": "^6.0.3",
     "vite": "^8.3.8",
     "vitest": "^5.1.0",

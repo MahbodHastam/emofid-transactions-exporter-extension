@@ -6,7 +6,7 @@ export default defineConfig({
   manifest: {
     name: 'Transactions Exporter for Emofid (unofficial)',
     description:
-      'Export your own Emofid transactions to CSV or XLSX. Read-only, local-only. Not affiliated with Emofid.',
+      'Export your own Emofid transactions to CSV or PDF. Read-only, local-only. Not affiliated with Emofid.',
     permissions: ['storage'],
     web_accessible_resources: [{ resources: ['fonts/*.woff2'], matches: ['https://my.emofid.com/*'] }],
   },

@@ -175,9 +175,6 @@ importers:
       vue:
         specifier: ^3.5.45
         version: 3.5.45(typescript@6.0.3)
-      write-excel-file:
-        specifier: ^4.1.1
-        version: 4.1.1
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -194,9 +191,6 @@ importers:
       '@wxt-dev/module-vue':
         specifier: ^1.0.3
         version: 1.0.3(vite@8.3.8(jiti@2.7.0))(vue@3.5.45(typescript@6.0.3))(wxt@0.21.5(rolldown@1.2.19)(typescript@6.0.3)(vite@8.3.8(jiti@2.7.0)))
-      fflate:
-        specifier: ^0.8.3
-        version: 0.8.3
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -858,9 +852,6 @@ packages:
       picomatch:
         optional: true
 
-  fflate@0.8.3:
-    resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
-
   filesize@11.0.30:
     resolution: {integrity: sha512-qaIUqg5pU4bdTZQG8w+v5IhPAlOHm/ifT+1NlBuPTlmIAKeBwG1CEYkaLYNLJCfDOGWb7QqXUyQnsYlIC7pAwA==}
     engines: {node: '>= 10.8.0'}
@@ -1359,10 +1350,6 @@ packages:
   wrap-ansi@7.0.0:
     resolution: {integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==}
     engines: {node: '>=10'}
-
-  write-excel-file@4.1.1:
-    resolution: {integrity: sha512-MUnCnNtQrcZek832ZcU24uU0rSphFmKPD1DvIjXOlygVb93CV7Tme6H3jUTkxsMmjB2W7HIzERzjqTi5kui71A==}
-    engines: {node: '>=18'}
 
   wxt@0.21.5:
     resolution: {integrity: sha512-naPKDK3LlU0M2LFJO3udw8ZEAB7DVQCGo26wllvSJQRVd3VaL9kiChjP8zWiVqm851uYkQ5pVI51hA5wjssO4g==}
@@ -1948,8 +1935,6 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.7
 
-  fflate@0.8.3: {}
-
   filesize@11.0.30: {}
 
   fsevents@2.3.3:
@@ -2361,10 +2346,6 @@ snapshots:
       ansi-styles: 4.3.0
       string-width: 4.2.3
       strip-ansi: 6.0.1
-
-  write-excel-file@4.1.1:
-    dependencies:
-      fflate: 0.8.3
 
   wxt@0.21.5(rolldown@1.2.19)(typescript@6.0.3)(vite@8.3.8(jiti@2.7.0)):
     dependencies:

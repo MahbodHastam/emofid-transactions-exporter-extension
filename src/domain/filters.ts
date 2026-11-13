@@ -20,22 +20,10 @@ export function summarize(txs: Transaction[]): Summary {
   let totalIn = 0;
   let totalOut = 0;
   let unknown = 0;
-  let oldest: Transaction | null = null;
-  let newest: Transaction | null = null;
   for (const t of txs) {
     if (t.direction === 'in') totalIn += t.amount;
     else if (t.direction === 'out') totalOut += t.amount;
     else unknown++;
-    if (!oldest || dayKey(t.date) < dayKey(oldest.date)) oldest = t;
-    if (!newest || dayKey(t.date) > dayKey(newest.date)) newest = t;
   }
-  return {
-    count: txs.length,
-    totalIn,
-    totalOut,
-    net: totalIn - totalOut,
-    unknown,
-    oldest: oldest?.dateJalali ?? null,
-    newest: newest?.dateJalali ?? null,
-  };
+  return { totalIn, totalOut, net: totalIn - totalOut, unknown };
 }

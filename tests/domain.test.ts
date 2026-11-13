@@ -16,22 +16,20 @@ const raw = (voucherDate: string | number, amount: number, remain: number | null
 const day = { from: { jy: 1405, jm: 8, jd: 21 }, to: { jy: 1405, jm: 8, jd: 21 } };
 
 describe('parseVoucherDate', () => {
+  const aban21 = { jy: 1405, jm: 8, jd: 21 };
+
   it('takes offset-less ISO as the civil date, without a timezone round-trip', () => {
-    expect(parseVoucherDate('2026-11-12T00:00:00')).toMatchObject({
-      date: { jy: 1405, jm: 8, jd: 21 },
-      gregorian: '2026-11-12',
-      time: '00:00:00',
-    });
-    expect(parseVoucherDate('2026-11-12').time).toBeNull();
+    expect(parseVoucherDate('2026-11-12T00:00:00')).toEqual(aban21);
+    expect(parseVoucherDate('2026-11-12')).toEqual(aban21);
   });
-  it('converts instants to Tehran wall clock', () => {
-    expect(parseVoucherDate('2026-11-11T20:30:00Z')).toMatchObject({ gregorian: '2026-11-12', time: '00:00:00' });
-    expect(parseVoucherDate('2026-11-12T00:00:00+03:30').gregorian).toBe('2026-11-12');
-    expect(parseVoucherDate(Date.UTC(2026, 10, 11, 20, 30)).gregorian).toBe('2026-11-12');
-    expect(parseVoucherDate(Date.UTC(2026, 10, 11, 20, 30) / 1000).gregorian).toBe('2026-11-12');
+  it('converts instants to the Tehran calendar day', () => {
+    expect(parseVoucherDate('2026-11-11T20:30:00Z')).toEqual(aban21);
+    expect(parseVoucherDate('2026-11-12T00:00:00+03:30')).toEqual(aban21);
+    expect(parseVoucherDate(Date.UTC(2026, 10, 11, 20, 30))).toEqual(aban21);
+    expect(parseVoucherDate(Date.UTC(2026, 10, 11, 20, 30) / 1000)).toEqual(aban21);
   });
   it('accepts Jalali strings with Persian digits', () => {
-    expect(parseVoucherDate('۱۴۰۵/۰۸/۲۱')).toMatchObject({ date: { jy: 1405, jm: 8, jd: 21 }, gregorian: '2026-11-12' });
+    expect(parseVoucherDate('۱۴۰۵/۰۸/۲۱')).toEqual(aban21);
   });
   it('rejects garbage clearly', () => {
     expect(() => parseVoucherDate('yesterday')).toThrow(SchemaError);
@@ -90,13 +88,10 @@ describe('filters', () => {
   });
   it('summarizes', () => {
     expect(summarize(txs)).toEqual({
-      count: 4,
       totalIn: 4000000,
       totalOut: 3350771,
       net: 649229,
       unknown: 0,
-      oldest: '1405/07/28',
-      newest: '1405/08/21',
     });
   });
   it('sorts either way, keeping same-day sequence', () => {
@@ -123,5 +118,58 @@ describe('schema', () => {
   it('fails loudly when the site changes shape', () => {
     expect(pageSchema.safeParse({ data: { rows: [] } }).success).toBe(false);
     expect(pageSchema.safeParse({ data: { items: [{ amount: 1 }] } }).success).toBe(false);
+  });
+});
+
+describe('trades and accounting', async () => {
+  const { parseTrade } = await import('../src/domain/trade');
+  const { account } = await import('../src/domain/accounting');
+  const row = (date: string, title: string, detail: string, amount: number, remain: number) => ({
+    voucherDate: date,
+    description: title,
+    voucherDetailDescription: detail,
+    amount,
+    voucherType: title,
+    remain,
+  });
+
+  it('reads symbol, quantity, price and fee from the description', () => {
+    expect(parseTrade('خرید سهم نمونه', 'خريد تعداد 10 سهم شرکت نمونه(نمونه1) به نرخ 1,000 به شماره اعلامیه 1_Mo', 10_050)).toEqual({
+      side: 'buy',
+      symbol: 'نمونه',
+      quantity: 10,
+      price: 1000,
+      fee: 50,
+    });
+    expect(parseTrade('فروش سهم نمونه', 'فروش تعداد ۱۰ سهم شرکت نمونه(نمونه1) به نرخ ۱,۲۰۰ به شماره', 11_900)).toMatchObject({
+      side: 'sell',
+      price: 1200,
+      fee: 100,
+    });
+  });
+  it('ignores non-trade rows and implausible fees', () => {
+    expect(parseTrade('واریز وجه', 'پرداخت وجه به شماره 123 تاریخ : 1405/08/01', 5000)).toBeNull();
+    expect(parseTrade('خرید سهم نمونه', 'خرید تعداد 10 سهم نمونه(نمونه1) به نرخ 1,000', 50_000)?.fee).toBeNull();
+  });
+  it('separates cash movements from trades', () => {
+    const txs = normalizeAll([
+      row('2026-11-12', 'فروش سهم نمونه', 'فروش تعداد 10 سهم نمونه(نمونه1) به نرخ 1,200 به شماره', 11_900, 102_850),
+      row('2026-11-11', 'خرید سهم نمونه', 'خرید تعداد 10 سهم نمونه(نمونه1) به نرخ 1,000 به شماره', 10_050, 90_950),
+      row('2026-11-10', 'واریز وجه', 'واریز', 100_000, 101_000),
+      row('2026-11-09', 'واریز وجه', 'واریز', 1000, 1000),
+    ]);
+    expect(txs.map((t) => t.direction)).toEqual(['in', 'out', 'in', 'in']);
+    expect(account(txs)).toMatchObject({
+      openingBalance: 0,
+      closingBalance: 102_850,
+      deposits: 101_000,
+      withdrawals: 0,
+      buys: 10_050,
+      sells: 11_900,
+      fees: 150,
+      trades: 2,
+      realized: 1850,
+    });
+    expect(account(txs).symbols[0]).toMatchObject({ symbol: 'نمونه', buyQuantity: 10, sellQuantity: 10, realized: 1850 });
   });
 });

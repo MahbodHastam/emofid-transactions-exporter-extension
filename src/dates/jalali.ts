@@ -1,5 +1,4 @@
 import { isValidJalaaliDate, jalaaliMonthLength, toGregorian, toJalaali } from 'jalaali-js';
-import { normalizeDigits } from '../domain/digits';
 import { tehranCivil } from './tehran';
 
 export interface JalaliDate {
@@ -26,21 +25,9 @@ export const monthLength = (jy: number, jm: number) => jalaaliMonthLength(jy, jm
 
 export const gregorianToJalali = (gy: number, gm: number, gd: number): JalaliDate => toJalaali(gy, gm, gd);
 
-export function jalaliToGregorianIso(d: JalaliDate): string {
-  const g = toGregorian(d.jy, d.jm, d.jd);
-  return `${g.gy}-${pad(g.gm)}-${pad(g.gd)}`;
-}
+export type RangeIssue = 'invalid-from' | 'invalid-to' | 'from-after-to';
 
-export function parseJalali(input: string): JalaliDate | null {
-  const m = /^\s*(\d{4})[/-](\d{1,2})[/-](\d{1,2})\s*$/.exec(normalizeDigits(input));
-  if (!m) return null;
-  const d = { jy: Number(m[1]), jm: Number(m[2]), jd: Number(m[3]) };
-  return isValidJalali(d) ? d : null;
-}
-
-export type RangeError_ = 'invalid-from' | 'invalid-to' | 'from-after-to';
-
-export function validateRange(r: JalaliRange): RangeError_ | null {
+export function validateRange(r: JalaliRange): RangeIssue | null {
   if (!isValidJalali(r.from)) return 'invalid-from';
   if (!isValidJalali(r.to)) return 'invalid-to';
   if (dayKey(r.from) > dayKey(r.to)) return 'from-after-to';

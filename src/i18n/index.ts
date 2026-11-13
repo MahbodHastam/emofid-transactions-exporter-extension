@@ -26,6 +26,8 @@ export const fa = {
   loaded: 'تراکنش بارگیری شد',
   oldestSoFar: 'قدیمی‌ترین تا اینجا',
   done: 'فایل دانلود شد',
+  donePdf: 'گزارش برای ذخیره آماده شد',
+  pdfHint: 'پنجرهٔ چاپ مرورگر باز می‌شود. مقصد را «Save as PDF» بگذارید.',
   fullHistory: 'کل تاریخچه',
   rows: 'تراکنش',
   totalIn: 'جمع واریز',

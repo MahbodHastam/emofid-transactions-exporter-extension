@@ -3,17 +3,24 @@ import type { Transaction } from '../domain/model';
 export interface Column {
   header: string;
   kind: 'text' | 'number';
-  width: number;
   get: (t: Transaction) => string | number | null;
 }
 
+const DIRECTION = { in: 'واریز', out: 'برداشت', unknown: '' };
+const SIDE = { buy: 'خرید', sell: 'فروش' };
+
 export const COLUMNS: Column[] = [
-  { header: 'date_jalali', kind: 'text', width: 13, get: (t) => t.dateJalali },
-  { header: 'title', kind: 'text', width: 28, get: (t) => t.title },
-  { header: 'description', kind: 'text', width: 50, get: (t) => t.description },
-  { header: 'type', kind: 'text', width: 16, get: (t) => t.type },
-  { header: 'direction', kind: 'text', width: 10, get: (t) => (t.direction === 'unknown' ? '' : t.direction) },
-  { header: 'amount_rial', kind: 'number', width: 18, get: (t) => t.amount },
-  { header: 'signed_amount_rial', kind: 'number', width: 20, get: (t) => t.signedAmount },
-  { header: 'balance_after_rial', kind: 'number', width: 20, get: (t) => t.balanceAfter },
+  { header: 'تاریخ', kind: 'text', get: (t) => t.dateJalali },
+  { header: 'عنوان', kind: 'text', get: (t) => t.title },
+  { header: 'مبلغ (ریال)', kind: 'number', get: (t) => t.amount },
+  { header: 'واریز یا برداشت', kind: 'text', get: (t) => DIRECTION[t.direction] },
+  { header: 'مبلغ با علامت (ریال)', kind: 'number', get: (t) => t.signedAmount },
+  { header: 'مانده (ریال)', kind: 'number', get: (t) => t.balanceAfter },
+  { header: 'نماد', kind: 'text', get: (t) => t.trade?.symbol ?? '' },
+  { header: 'خرید یا فروش', kind: 'text', get: (t) => (t.trade ? SIDE[t.trade.side] : '') },
+  { header: 'تعداد', kind: 'number', get: (t) => t.trade?.quantity ?? null },
+  { header: 'نرخ هر سهم (ریال)', kind: 'number', get: (t) => t.trade?.price ?? null },
+  { header: 'کارمزد و مالیات (ریال)', kind: 'number', get: (t) => t.trade?.fee ?? null },
+  { header: 'نوع سند', kind: 'text', get: (t) => t.type },
+  { header: 'شرح', kind: 'text', get: (t) => t.description },
 ];

@@ -3,8 +3,6 @@ import {
   formatJalali,
   gregorianToJalali,
   isValidJalali,
-  jalaliToGregorianIso,
-  parseJalali,
   preset,
   todayJalali,
   validateRange,
@@ -15,7 +13,7 @@ import { normalizeDigits, parseRial } from '../src/domain/digits';
 const j = (jy: number, jm: number, jd: number) => ({ jy, jm, jd });
 
 describe('jalali', () => {
-  it('round-trips across year boundaries', () => {
+  it('converts across year boundaries', () => {
     const cases: [ReturnType<typeof j>, string][] = [
       [j(1403, 12, 30), '2025-03-20'], // last day of a leap year
       [j(1404, 1, 1), '2025-03-21'],
@@ -24,7 +22,6 @@ describe('jalali', () => {
       [j(1405, 8, 21), '2026-11-12'],
     ];
     for (const [jal, iso] of cases) {
-      expect(jalaliToGregorianIso(jal)).toBe(iso);
       const [y, m, d] = iso.split('-').map(Number);
       expect(gregorianToJalali(y, m, d)).toEqual(jal);
     }
@@ -48,13 +45,6 @@ describe('jalali', () => {
     expect(validateRange({ from: j(1405, 1, 1), to: j(1405, 7, 31) })).toBe('invalid-to');
   });
 
-  it('parses Persian and Arabic digits', () => {
-    expect(parseJalali('۱۴۰۵/۰۸/۲۱')).toEqual(j(1405, 8, 21));
-    expect(parseJalali('١٤٠٥-٨-٢١')).toEqual(j(1405, 8, 21));
-    expect(parseJalali('1404/12/30')).toBeNull();
-    expect(parseJalali('nope')).toBeNull();
-    expect(normalizeDigits('۱۲۳٤٥٦')).toBe('123456');
-  });
 
   it('builds presets', () => {
     const today = j(1405, 8, 21);

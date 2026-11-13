@@ -50,7 +50,12 @@ export default defineContentScript({
       ui.mount();
     };
     // The event fires before the SPA commits the URL, so read the destination from it.
-    ctx.addEventListener(window, 'wxt:locationchange', (event) => sync(event.newUrl.pathname));
+    // A file download also fires it, with a blob: URL that is not a page change.
+    ctx.addEventListener(window, 'wxt:locationchange', (event) => {
+      if (event.newUrl.origin === location.origin && /^https?:$/.test(event.newUrl.protocol)) {
+        sync(event.newUrl.pathname);
+      }
+    });
     sync(location.pathname);
   },
 });

@@ -3,10 +3,15 @@ import { BRIDGE_SOURCE, PANEL_SOURCE, type BridgeReply, type PanelRequest } from
 import ExportPanel from '../src/ui/ExportPanel.vue';
 
 const TYPES = [
-  { title: 'واریز وجه', type: 'Deposit', sign: 1 },
-  { title: 'فروش سهام', type: 'Sell', sign: 1 },
-  { title: 'خرید سهام', type: 'Buy', sign: -1 },
-  { title: 'برداشت وجه', type: 'Withdraw', sign: -1 },
+  { title: 'واریز وجه', type: 'Deposit', sign: 1, trade: '' },
+  { title: 'فروش سهم', type: 'Deposit', sign: 1, trade: 'فروش' },
+  { title: 'خرید سهم', type: 'Withdrawal', sign: -1, trade: 'خرید' },
+  { title: 'برداشت وجه', type: 'Withdrawal', sign: -1, trade: '' },
+];
+const SYMBOLS = [
+  { symbol: 'نمونه', name: 'شرکت نمونه', price: 12_400 },
+  { symbol: 'آزمون', name: 'صنایع آزمون', price: 3_850 },
+  { symbol: 'الگو', name: 'سرمایه‌گذاری الگو', price: 27_900 },
 ];
 
 function mockHistory(count: number) {
@@ -14,11 +19,18 @@ function mockHistory(count: number) {
   const day = new Date(Date.UTC(2026, 10, 12));
   return Array.from({ length: count }, (_, i) => {
     const t = TYPES[(i * 7 + 3) % TYPES.length];
-    const amount = (((i * 37) % 19) + 1) * 250_000;
+    const s = SYMBOLS[i % SYMBOLS.length];
+    const quantity = (((i * 37) % 19) + 1) * 20;
+    const price = s.price + (t.sign > 0 ? 600 : 0) + ((i * 53) % 400);
+    const amount = t.trade
+      ? Math.round(quantity * price * (t.sign > 0 ? 0.9912 : 1.0037))
+      : (((i * 37) % 19) + 1) * 250_000;
     const row = {
       voucherDate: day.toISOString().slice(0, 19),
-      description: t.title,
-      voucherDetailDescription: `نمونه ${i + 1}`,
+      description: t.trade ? `${t.title} ${s.symbol}` : t.title,
+      voucherDetailDescription: t.trade
+        ? `${t.trade} تعداد ${quantity} سهم ${s.name}(${s.symbol}1) به نرخ ${price.toLocaleString('en-US')} به شماره اعلامیه ${100000 + i}_Mo`
+        : `نمونه ${i + 1}`,
       amount,
       voucherType: t.type,
       remain,

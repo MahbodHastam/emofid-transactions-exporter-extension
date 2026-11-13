@@ -14,9 +14,8 @@ import {
   TriangleAlert,
   X,
 } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import { browser } from 'wxt/browser';
-import writeXlsxFile from 'write-excel-file/browser';
 import { createApiSource } from '../data/apiSource';
 import { pageTransport } from '../data/pageTransport';
 import { collect } from '../data/paginator';
@@ -32,26 +31,28 @@ import {
   type JalaliDate,
   type PresetId,
 } from '../dates/jalali';
+import { account } from '../domain/accounting';
 import { applyQuery, sortByDate, summarize } from '../domain/filters';
 import type { ExportQuery, Summary } from '../domain/model';
 import { normalizeAll, parseVoucherDate, passedRangeStart, rawKey } from '../domain/normalize';
 import { toCsv } from '../export/csv';
 import { exportFilename } from '../export/filename';
-import { buildSheets } from '../export/xlsx';
 import { fa, JALALI_MONTHS, type MessageKey } from '../i18n';
+import ReportView, { type ReportData } from './ReportView.vue';
 
 type Phase = 'idle' | 'running' | 'done' | 'empty' | 'cancelled' | 'error';
 interface Result {
   rows: number;
   rangeLabel: string;
   partial: boolean;
+  pdf: boolean;
   pnl: Summary;
 }
 
 const today = todayJalali();
 const open = ref(false);
 const direction = ref<ExportQuery['direction']>('all');
-const format = ref<ExportQuery['format']>('xlsx');
+const format = ref<ExportQuery['format']>('pdf');
 const order = ref<'newest' | 'oldest'>('newest');
 const useRange = ref(false);
 const range = reactive(preset('thisMonth', today));
@@ -77,7 +78,7 @@ const scopes = [
   { value: 'in', icon: ArrowDownLeft },
   { value: 'out', icon: ArrowUpRight },
 ] as const;
-const formats = ['xlsx', 'csv'] as const;
+const formats = ['pdf', 'csv'] as const;
 const years = Array.from({ length: today.jy - 1379 }, (_, i) => today.jy - i);
 const ends = [
   { key: 'from' as const, date: range.from },
@@ -103,7 +104,7 @@ function applyPreset(id: PresetId) {
 onMounted(async () => {
   const saved = (await browser.storage.local.get('prefs')).prefs as Record<string, string> | undefined;
   if (saved?.direction) direction.value = saved.direction as ExportQuery['direction'];
-  if (saved?.format) format.value = saved.format as ExportQuery['format'];
+  if (saved?.format === 'csv' || saved?.format === 'pdf') format.value = saved.format;
 });
 watch([direction, format], () =>
   browser.storage.local.set({ prefs: { direction: direction.value, format: format.value } }),
@@ -172,7 +173,7 @@ async function run() {
     keyOf: rawKey,
     onProgress(items) {
       progress.count = items.length;
-      if (items.length) progress.oldest = formatJalali(parseVoucherDate(items[items.length - 1].voucherDate).date);
+      if (items.length) progress.oldest = formatJalali(parseVoucherDate(items[items.length - 1].voucherDate));
     },
     shouldStop: fromKey === null ? undefined : (items) => passedRangeStart(items, fromKey),
   });
@@ -197,22 +198,14 @@ async function finish(raws: RawTx[], q: ExportQuery, partial: boolean) {
       phase.value = 'empty';
       return;
     }
-    const blob =
-      q.format === 'csv'
-        ? new Blob([toCsv(txs)], { type: 'text/csv;charset=utf-8' })
-        : await writeXlsxFile(
-            buildSheets(txs, {
-              query: q,
-              summary: summarize(txs),
-              partial,
-              version: browser.runtime.getManifest().version,
-            }),
-          ).toBlob();
-    download(blob, exportFilename(q));
+    const pnl = summarize(inRange);
+    if (q.format === 'csv') download(new Blob([toCsv(txs)], { type: 'text/csv;charset=utf-8' }), exportFilename(q));
+    else await printReport({ txs, query: q, summary: pnl, accounting: account(inRange), partial });
     result.value = {
       rows: txs.length,
       partial,
-      pnl: summarize(inRange),
+      pdf: q.format === 'pdf',
+      pnl,
       rangeLabel: q.range
         ? `${faDigits(formatJalali(q.range.from))} ${t('to')} ${faDigits(formatJalali(q.range.to))}`
         : t('fullHistory'),
@@ -220,6 +213,43 @@ async function finish(raws: RawTx[], q: ExportQuery, partial: boolean) {
     phase.value = 'done';
   } catch (e) {
     fail(e);
+  }
+}
+
+const PRINT_CSS = `
+@page { size: A4; margin: 12mm; }
+html, body { height: auto !important; min-height: 0 !important; overflow: visible !important; background: #fff !important; }
+body > :not([data-emx-print]) { display: none !important; }
+[data-emx-print] { display: block !important; }
+`;
+
+const root = ref<HTMLElement>();
+const report = shallowRef<ReportData | null>(null);
+
+// The browser's own print dialog does the PDF: it shapes Persian text correctly and keeps it selectable.
+async function printReport(data: ReportData) {
+  const el = root.value!;
+  const rootNode = el.getRootNode();
+  let host: Element = rootNode instanceof ShadowRoot ? rootNode.host : el;
+  while (host.parentElement && host.parentElement !== document.body) host = host.parentElement;
+
+  const style = document.createElement('style');
+  style.textContent = PRINT_CSS;
+  const title = document.title;
+  report.value = data;
+  try {
+    await nextTick();
+    document.head.append(style);
+    host.setAttribute('data-emx-print', '');
+    document.title = exportFilename(data.query).replace(/\.pdf$/, '');
+    await document.fonts.ready;
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    window.print();
+  } finally {
+    document.title = title;
+    host.removeAttribute('data-emx-print');
+    style.remove();
+    report.value = null;
   }
 }
 
@@ -237,7 +267,8 @@ const cancel = () => controller?.abort();
 </script>
 
 <template>
-  <div class="emx" dir="rtl" lang="fa">
+  <div ref="root" class="emx" :class="{ printing: report }" dir="rtl" lang="fa">
+    <ReportView v-if="report" :data="report" />
     <Transition name="pop" mode="out-in">
       <button v-if="!open" key="fab" class="fab" type="button" @click="open = true">
         <Download :size="16" aria-hidden="true" /> {{ t('open') }}
@@ -329,6 +360,11 @@ const cancel = () => controller?.abort();
                 <option value="oldest">{{ t('oldest') }}</option>
               </select>
             </div>
+            <div class="rel">
+              <Transition name="swap">
+                <p v-if="format === 'pdf'" class="muted">{{ t('pdfHint') }}</p>
+              </Transition>
+            </div>
 
             <div class="rel action">
               <Transition name="swap">
@@ -355,7 +391,7 @@ const cancel = () => controller?.abort();
 
                   <template v-else-if="phase === 'done' && result">
                     <p class="note good">
-                      <CircleCheck :size="16" aria-hidden="true" /> {{ t('done') }}
+                      <CircleCheck :size="16" aria-hidden="true" /> {{ t(result.pdf ? 'donePdf' : 'done') }}
                       <span class="muted push">{{ num(result.rows) }} {{ t('rows') }}</span>
                     </p>
                     <div class="pnl" :class="result.pnl.net > 0 ? 'good' : result.pnl.net < 0 ? 'bad' : ''">
@@ -441,6 +477,13 @@ const cancel = () => controller?.abort();
 .emx svg {
   flex: none;
   vertical-align: -0.2em;
+}
+
+.emx.printing {
+  position: static;
+}
+.emx.printing > :not(.report) {
+  display: none !important;
 }
 
 /* Buttons */
